@@ -20,22 +20,9 @@ def create_session(session_id, phone_num, api_id, api_hash):
     return client
 
 
-client = create_session(SESSION_ID, PHONE_NUM, API_ID, API_HASH)
-chat = InputPeerChat(GROUP_ID)
-
-date = datetime.datetime.today()
-date = date.replace(day=21)
-date = date.replace(year=2016)
-
-total_count, messages, senders = client.get_message_history(
-    chat, offset_date=date, limit=100, max_id=143408)
-print(total_count)
-
-# dialogs, entities = client.get_dialogs(10)
-# print('\n'.join('{}. {}'.format(i, str(e)) for i, e in enumerate(entities)))
-
-for msg, sender in zip(reversed(messages), reversed(senders)):
-    # Get the name of the sender if any
+def get_name(sender):
+    """Gets the first and last names from the given sender, if exist."""
+    name = '???'
     if sender:
         name = getattr(sender, 'first_name', None)
         if not name:
@@ -44,10 +31,11 @@ for msg, sender in zip(reversed(messages), reversed(senders)):
                 name = '???'
         else:
             name += ' ' + getattr(sender, 'last_name', None)
-    else:
-        name = '???'
+    return name
 
-    # Format the message content
+
+def parse_message(msg, name):
+    """Parses a single message from the given sender's name."""
     if getattr(msg, 'media', None):
         content = '<{}> {}'.format(  # The media may or may not have a caption
             msg.media.__class__.__name__,
@@ -60,8 +48,43 @@ for msg, sender in zip(reversed(messages), reversed(senders)):
         # Unknown message, simply print its class name
         content = msg.__class__.__name__
 
-    print('[{}/{}/{} {}:{}] (ID={}) {}: {}'.format(
+    return '[{}/{}/{} {}:{}] (ID={}) {}: {}\n'.format(
         msg.date.day, msg.date.month, msg.date.year, msg.date.hour,
-        msg.date.minute, msg.id, name, content))
+        msg.date.minute, msg.id, name, content)
 
-print("TOTAL:", len(messages))
+
+def get_first_msg_id(messages):
+    """Gets the id of the first message."""
+    return messages[-1].id if len(messages) > 0 else None
+
+
+def get_parsed_history(client, date, limit=100, offset_id=-1):
+    """Gets the parsed history given a date."""
+    total_count, messages, senders = client.get_message_history(
+        chat, offset_date=date, limit=limit, offset_id=offset_id)
+
+    parsed_msgs = ""
+    for msg, sender in zip(reversed(messages), reversed(senders)):
+        name = get_name(sender)
+        parsed_msgs += parse_message(msg, name)
+    return parsed_msgs, get_first_msg_id(messages)
+
+
+# dialogs, entities = client.get_dialogs(10)
+# print('\n'.join('{}. {}'.format(i, str(e)) for i, e in enumerate(entities)))
+
+client = create_session(SESSION_ID, PHONE_NUM, API_ID, API_HASH)
+chat = InputPeerChat(GROUP_ID)
+
+date = datetime.datetime.today()
+# date = date.replace(day=22)
+# date = date.replace(year=2010)
+print(date)
+
+parsed_msgs_1, first = get_parsed_history(client, date)
+parsed_msgs_2, second = get_parsed_history(client, date, offset_id=first)
+
+print(parsed_msgs_2)
+print(first)
+print(parsed_msgs_1)
+print(first)
