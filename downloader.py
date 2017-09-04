@@ -6,7 +6,7 @@ from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, GROUP_ID
 
 
 def authorize_client(client, phone_num):
-    """Makes sure the client is authorized."""
+    """Authorizes the client if not authorized yet."""
     if not client.is_user_authorized():
         client.send_code_request(phone_num)
         client.sign_in(phone_num, input('Enter code: '))
