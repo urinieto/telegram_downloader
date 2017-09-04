@@ -48,9 +48,9 @@ def parse_message(msg, name):
         # Unknown message, simply print its class name
         content = msg.__class__.__name__
 
-    return '[{}/{}/{} {}:{}] (ID={}) {}: {}\n'.format(
+    return '[{}/{}/{} {}:{num:02d}] (ID={}) {}: {}\n'.format(
         msg.date.day, msg.date.month, msg.date.year, msg.date.hour,
-        msg.date.minute, msg.id, name, content)
+        msg.id, name, content, num=msg.date.minute)
 
 
 def get_first_msg_id(messages):
@@ -58,16 +58,14 @@ def get_first_msg_id(messages):
     return messages[-1].id if len(messages) > 0 else None
 
 
-def get_parsed_history(client, date, limit=100, offset_id=-1):
+def get_parsed_history(messages, senders):
     """Gets the parsed history given a date."""
-    total_count, messages, senders = client.get_message_history(
-        chat, offset_date=date, limit=limit, offset_id=offset_id)
 
     parsed_msgs = ""
     for msg, sender in zip(reversed(messages), reversed(senders)):
         name = get_name(sender)
         parsed_msgs += parse_message(msg, name)
-    return parsed_msgs, get_first_msg_id(messages)
+    return parsed_msgs
 
 
 # dialogs, entities = client.get_dialogs(10)
@@ -81,10 +79,15 @@ date = datetime.datetime.today()
 # date = date.replace(year=2010)
 print(date)
 
-parsed_msgs_1, first = get_parsed_history(client, date)
-parsed_msgs_2, second = get_parsed_history(client, date, offset_id=first)
+parsed_msgs = ""
+offset_id = -1
+limit = 100
+total_msgs = 0
+for _ in range(10):
+    _, messages, senders = client.get_message_history(
+        chat, offset_date=date, limit=limit, offset_id=offset_id)
+    offset_id = get_first_msg_id(messages)
+    parsed_msgs = get_parsed_history(messages, senders) + parsed_msgs
+    total_msgs += len(messages)
 
-print(parsed_msgs_2)
-print(first)
-print(parsed_msgs_1)
-print(first)
+print(parsed_msgs)
