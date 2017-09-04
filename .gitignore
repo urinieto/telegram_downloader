@@ -1,3 +1,7 @@
+# Telegram downloader specific files
+config.py
+*.session
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -99,3 +103,7 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Vim
+*.swp
+*.swo
