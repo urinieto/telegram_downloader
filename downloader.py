@@ -39,7 +39,8 @@ def get_name(sender):
     return name
 
 
-def get_new_path(msg, name, new_dir, prefix, file_extension):
+def format_media_path(msg, name, new_dir, prefix, file_extension):
+    """Formats the file containing the media."""
     new_path = "{}_{}-{}-{} {}:{min:02d}:{sec:02d}_{}".format(
         prefix, msg.date.year, msg.date.month, msg.date.day,
         msg.date.hour, name, min=msg.date.minute, sec=msg.date.second)
@@ -63,11 +64,11 @@ def download_media(msg, name, client, media_dir="media", audio_dir="audio",
     filename, file_extension = os.path.splitext(tmp_path)
     new_path = None
     if file_extension == ".oga":
-        new_path = get_new_path(msg, name, audio_dir, "audio", file_extension)
+        new_path = format_media_path(msg, name, audio_dir, "audio", file_extension)
     elif file_extension == ".jpg":
-        new_path = get_new_path(msg, name, img_dir, "img", file_extension)
+        new_path = format_media_path(msg, name, img_dir, "img", file_extension)
     elif file_extension == ".mp4":
-        new_path = get_new_path(msg, name, video_dir, "video", file_extension)
+        new_path = format_media_path(msg, name, video_dir, "video", file_extension)
 
     new_path = tmp_path if new_path is None else new_path
     shutil.move(tmp_path, new_path)
@@ -170,3 +171,5 @@ for _ in tqdm(range(n_batches)):
     total_msgs += len(messages)
 
 print(parsed_msgs)
+with open("latex/content.tex", "w") as f:
+    f.write(parsed_msgs)
