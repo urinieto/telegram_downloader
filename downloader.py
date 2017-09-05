@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 import datetime
+import emoji
 import os
 import shutil
 import sys
 from tqdm import tqdm
 from telethon import TelegramClient
+from telethon.tl.types.message_media_photo import MessageMediaPhoto
 from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, GROUP_ID
 
 
@@ -73,16 +75,42 @@ def download_media(msg, name, client, media_dir="media", audio_dir="audio",
     return new_path
 
 
+def get_message_string(msg, name, content):
+    """Gets the actual string, customly formatted."""
+    if content is None:
+        content = ""
+    else:
+        content = ": " + parse_emojis(content)
+    return '[{}/{}/{} {}:{num:02d}] \\textbf{{{}}}{}'.format(
+        msg.date.day, msg.date.month, msg.date.year, msg.date.hour, name,
+        content, num=msg.date.minute)
+
+
+def parse_emojis(in_str):
+    """Adds the DejaSans prefix for LaTeX parsing."""
+    out_str = ""
+    for c in in_str:
+        if c in emoji.UNICODE_EMOJI:
+            out_str += "{\DejaSans " + c + "}"
+        else:
+            out_str += c
+    return out_str
+
+
 def parse_message(msg, name, client):
     """Parses a single message from the given sender's name."""
     if getattr(msg, 'media', None):
-        content = '<{}> {}'.format(  # The media may or may not have a caption
-            msg.media.__class__.__name__,
-            getattr(msg.media, 'caption', ''))
+        media_path = None
+        caption = getattr(msg.media, 'caption', '')
         try:
-            download_media(msg, name, client)
+            media_path = download_media(msg, name, client)
         except TypeError:
             print("Couldn't download {}".format(msg))
+        if isinstance(msg.media, MessageMediaPhoto) and media_path is not None:
+            content = "\myfigure{0.6}{%s}" % ("image/" + os.path.basename(media_path))
+            return content + "{" + get_message_string(msg, name, caption) + "}\n\n"
+        else:
+            content = '<{}> {}'.format(msg.media.__class__.__name__, media_path)
     elif hasattr(msg, 'message'):
         content = msg.message
     elif hasattr(msg, 'action'):
@@ -91,9 +119,7 @@ def parse_message(msg, name, client):
         # Unknown message, simply print its class name
         content = msg.__class__.__name__
 
-    return '[{}/{}/{} {}:{num:02d}] (ID={}) {}: {}\n'.format(
-        msg.date.day, msg.date.month, msg.date.year, msg.date.hour,
-        msg.id, name, content, num=msg.date.minute)
+    return get_message_string(msg, name, content) + "\n\n"
 
 
 def get_first_msg_id(messages):
@@ -103,7 +129,6 @@ def get_first_msg_id(messages):
 
 def get_parsed_history(messages, senders, client):
     """Gets the parsed history given a date."""
-
     parsed_msgs = ""
     for msg, sender in zip(reversed(messages), reversed(senders)):
         name = get_name(sender)
