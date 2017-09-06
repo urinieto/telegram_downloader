@@ -7,7 +7,22 @@ import sys
 from tqdm import tqdm
 from telethon import TelegramClient
 from telethon.tl.types.message_media_photo import MessageMediaPhoto
-from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, GROUP_ID
+from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, CHAT_ID
+
+MONTHS_DICT = {
+    1: "Gener",
+    2: "Febrer",
+    3: "Març",
+    4: "Abril",
+    5: "Maig",
+    6: "Juny",
+    7: "Juliol",
+    8: "Agost",
+    9: "Setembre",
+    10: "Octubre",
+    11: "Novembre",
+    12: "Desembre"
+}
 
 
 def authorize_client(client, phone_num):
@@ -128,48 +143,79 @@ def get_first_msg_id(messages):
     return messages[-1].id if len(messages) > 0 else None
 
 
-def get_parsed_history(messages, senders, client):
+def get_first_date(messages):
+    """Gets the date of the first message."""
+    return messages[-1].date if len(messages) > 0 else None
+
+
+def add_new_chapter(prev, curr):
+    """Adds a new LaTeX chapter if needed."""
+    return "\mychapter{%s del %d}\n\n" % \
+        (MONTHS_DICT[prev.month], prev.year) \
+        if curr is None or prev.month != curr.month else ""
+
+
+def get_parsed_history(messages, senders, client, prev_batch_date):
     """Gets the parsed history given a date."""
     parsed_msgs = ""
-    for msg, sender in zip(reversed(messages), reversed(senders)):
+    prev_date = get_first_date(messages)
+    for i, (msg, sender) in enumerate(zip(reversed(messages),
+                                          reversed(senders))):
+        if i != 0:
+            parsed_msgs += add_new_chapter(prev_date, msg.date)
+            prev_date = msg.date
         name = get_name(sender)
         parsed_msgs += parse_message(msg, name, client)
+
+    if prev_batch_date is not None:
+        parsed_msgs += add_new_chapter(prev_batch_date, msg.date)
     return parsed_msgs
 
 
-client = create_session(SESSION_ID, PHONE_NUM, API_ID, API_HASH)
+def get_chat(client, chat_id):
+    """Gets the chat with the given id and the open client."""
+    dialogs, entities = client.get_dialogs()
+    chat = None
+    for i, e in enumerate(entities):
+        if e.id == CHAT_ID:
+            chat = e
+            break
+    return chat
 
-dialogs, entities = client.get_dialogs()
-chat = None
-for i, e in enumerate(entities):
-    if e.id == GROUP_ID:
-        chat = e
-        break
 
-if chat is None:
-    print("Group {} not found!".format(GROUP_ID))
-    sys.exit()
+if __name__ == "__main__":
+    client = create_session(SESSION_ID, PHONE_NUM, API_ID, API_HASH)
+    chat = get_chat(client, CHAT_ID)
 
-# Download Chat Pic
-output = client.download_profile_photo(chat, 'media/chat_picture')
+    if chat is None:
+        print("Group {} not found!".format(CHAT_ID))
+        sys.exit()
 
-date = datetime.datetime.today()
-# date = date.replace(day=22)
-# date = date.replace(year=2010)
-print(date)
+    # Download Chat Pic
+    _ = client.download_profile_photo(chat, 'media/chat_picture')
 
-parsed_msgs = ""
-offset_id = -1
-limit = 100
-total_msgs = 0
-n_batches = 1
-for _ in tqdm(range(n_batches)):
-    _, messages, senders = client.get_message_history(
-        chat, offset_date=date, limit=limit, offset_id=offset_id)
-    offset_id = get_first_msg_id(messages)
-    parsed_msgs = get_parsed_history(messages, senders, client) + parsed_msgs
-    total_msgs += len(messages)
+    date = datetime.datetime.today()
+    # date = date.replace(day=22)
+    # date = date.replace(year=2010)
 
-print(parsed_msgs)
-with open("latex/content.tex", "w") as f:
-    f.write(parsed_msgs)
+    parsed_msgs = ""
+    offset_id = -1
+    limit = 100
+    total_msgs = 0
+    n_batches = 10
+    prev_batch_date = None
+    for _ in tqdm(range(n_batches)):
+        _, messages, senders = client.get_message_history(
+            chat, offset_date=date, limit=limit, offset_id=offset_id)
+        offset_id = get_first_msg_id(messages)
+        curr_msgs = get_parsed_history(messages, senders, client,
+                                       prev_batch_date)
+        parsed_msgs = curr_msgs + parsed_msgs
+        total_msgs += len(messages)
+        prev_batch_date = get_first_date(messages)
+
+    # Add first chapter
+    parsed_msgs = add_new_chapter(prev_batch_date, None) + parsed_msgs
+    print(parsed_msgs)
+    with open("latex/content.tex", "w") as f:
+        f.write(parsed_msgs)
