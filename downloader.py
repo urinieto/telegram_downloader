@@ -4,6 +4,8 @@ import emoji
 import os
 import shutil
 import sys
+import time
+
 from tqdm import tqdm
 from telethon import TelegramClient
 from telethon.tl.types.message_media_photo import MessageMediaPhoto
@@ -73,7 +75,16 @@ def download_media(msg, name, client, media_dir="media", audio_dir="audio",
     video_dir = os.path.join(media_dir, video_dir)
     os.makedirs(video_dir, exist_ok=True)
 
-    tmp_path = client.download_media(msg.media, file=media_dir)
+    # Download media, and wait if timed out
+    tmp_path = None
+    k = 0
+    while tmp_path is None:
+        try:
+            tmp_path = client.download_media(msg.media, file=media_dir)
+        except TimeoutError:
+            k += 1
+            print("Download attempt", k)
+            time.sleep(10)
 
     # Move files correctly
     filename, file_extension = os.path.splitext(tmp_path)
@@ -221,6 +232,8 @@ if __name__ == "__main__":
         total_msgs += len(messages)
         prev_batch_date = get_first_date(messages)
         print(prev_batch_date)
+        with open("latex/content.tex", "w") as f:
+            f.write(parsed_msgs)
 
     # Add first chapter
     parsed_msgs = add_new_chapter(prev_batch_date, None) + parsed_msgs
