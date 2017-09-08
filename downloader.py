@@ -207,17 +207,20 @@ if __name__ == "__main__":
     offset_id = -1
     limit = 100
     total_msgs = 0
-    n_batches = 10
+    n_batches = 1000000
     prev_batch_date = None
     for _ in tqdm(range(n_batches)):
         _, messages, senders = client.get_message_history(
             chat, offset_date=date, limit=limit, offset_id=offset_id)
+        if len(messages) == 0:
+            break
         offset_id = get_first_msg_id(messages)
         curr_msgs = get_parsed_history(messages, senders, client,
                                        prev_batch_date)
         parsed_msgs = curr_msgs + parsed_msgs
         total_msgs += len(messages)
         prev_batch_date = get_first_date(messages)
+        print(prev_batch_date)
 
     # Add first chapter
     parsed_msgs = add_new_chapter(prev_batch_date, None) + parsed_msgs
