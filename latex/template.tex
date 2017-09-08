@@ -1,0 +1,179 @@
+\documentclass[11pt,twoside,openany]{book}
+\usepackage[paperwidth=6.125in, paperheight=9.250in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{selinput}
+\usepackage{setspace}
+\usepackage{verse}
+\usepackage{csquotes}
+\SelectInputMappings{%
+  aacute={á},
+  ntilde={ñ},
+  Euro={€}
+}
+\usepackage{fontspec}
+\newfontfamily\DejaSans{DejaVu Sans}
+\usepackage{amsmath,amssymb}
+\usepackage[russian, spanish]{babel}
+\usepackage{varwidth}
+\newenvironment{Verse}
+  {\center\varwidth{\linewidth}}
+  {\endvarwidth\endcenter}   
+\usepackage{graphicx}
+\usepackage[space]{grffile}
+\usepackage{caption}
+\graphicspath{{../media/}}
+\usepackage{epigraph}
+\usepackage{hyperref}
+\usepackage{attrib}
+\usepackage[tocindentauto]{tocstyle}
+
+\addto\captionsspanish{%
+  \renewcommand{\chaptername}{} % Empty Chapter Preamble
+}
+
+\renewcommand\thechapter{\Roman{chapter}}
+
+\newcommand{\mydate}[1]{\begin{flushright}\date{#1}\end{flushright}}
+
+\newcommand{\myfigsize}{0.6}
+
+\newcommand{\mydots}{\begin{center} .          .          .\end{center}}
+
+\newcommand{\myfigure}[3]{
+  \begin{figure}[h!]
+    \centering
+    \centerline{\includegraphics[width=#1\textwidth]{\detokenize{#2}}}
+    \caption*{\footnotesize #3}
+  \end{figure}
+}
+
+\usepackage{fancyhdr}
+\def\secondpage{\clearpage\null\vfill
+\pagestyle{empty}
+\begin{minipage}[b]{0.9\textwidth}
+\footnotesize\raggedright
+\setlength{\parskip}{0.5\baselineskip}
+Copyright \copyright 2013--\the\year\ La Caverna.\par
+Editat, amb amor, pel Dr. Nieto Junior.
+\end{minipage}
+\vspace*{2\baselineskip}
+\cleardoublepage
+\rfoot{\thepage}}
+
+\usepackage{afterpage}
+
+\newcommand\blankpage{%
+    \null
+    \thispagestyle{empty}%
+    \addtocounter{page}{-1}%
+    \newpage}
+
+\newcommand{\mychapter}[1]{ 
+  \chapter{#1} 
+  %\addcontentsline{toc}{chapter}{#1}
+}
+
+\title{La Caverna}
+\author{
+  Daniel Gonz\'alez
+}
+\date{\today}
+
+%\onehalfspacing
+
+\begin{document}
+\clearpage
+%% temporary titles
+% command to provide stretchy vertical space in proportion
+\newcommand\nbvspace[1][3]{\vspace*{\stretch{#1}}}
+% allow some slack to avoid under/overfull boxes
+\newcommand\nbstretchyspace{\spaceskip0.5em plus 0.25em minus 0.25em}
+% To improve spacing on titlepages
+\newcommand{\nbtitlestretch}{\spaceskip0.6em}
+\pagestyle{empty}
+\begin{center}
+\bfseries
+\nbvspace[1]
+\Huge
+{\nbtitlestretch\huge
+LA CAVERNA}
+
+\nbvspace[1]
+\normalsize
+
+Vol\'um I: De joves a puretes\\
+
+\nbvspace[1]
+\small ESCRIT PELS\\
+\Large MEMBRES DE LA CAVERNA\\[0.5em]
+%\footnotesize AUTHOR OF ``A WORKING ALGEBRA,'' ``WIRELESS TELEGRAPHY,\\
+%ITS HISTORY, THEORY AND PRACTICE,'' ETC., ETC.
+
+\nbvspace[2]
+
+\includegraphics[width=2.2in]{chat_picture}
+\nbvspace[3]
+\normalsize
+
+\nbvspace[2]
+\large
+PUBLICACIONS TITAN
+\nbvspace[1]
+\end{center}
+
+\afterpage{\blankpage}
+
+%\maketitle
+
+\secondpage
+
+\tableofcontents
+
+\chapter*{Nota del Editor}
+\addcontentsline{toc}{chapter}{Nota del Editor}
+
+Este libro contiene a Mi Padre.
+O al menos una parte de Él, gestada durante sus primeros 60 años de vida.
+En 2013, cuando empezó su blog \emph{Sueños, Realidad y Cabezaditas (Velocidad, sueños, tocino y realidad)}, nadie pensó que se convertiría en el bestseller que tiene Ud. en sus manos.
+Excepto, tal vez, yo (el Editor).
+Espero que esta antología compuesta por el imaginario de Mi Padre invite a su autor a escribir un libro sin necesidad de editores emparentados.
+Especialmente ahora que tendrá una nueva casa y el trabajo le quedará a un tiro de piedra.
+También espero que quien lea este libro quede tan fascinado como yo con esta danza de palabras y escenas que reflejan lo maravilloso e inigualable que es Mi Padre.
+Este es mi regalo para su 60 cumpleaños.
+Y, ya que soy su Editor, voy a aprovechar para decir lo mucho que le quiero aquí, públicamente, para que le quede bien claro al Mundo.
+T'estimo Vicenta.
+
+\footnotesize
+\begin{flushright}
+Oriol Nieto Caballero (Dr. Nieto Junior)\\ 
+
+Brooklyn, 
+
+Nueva York, 
+
+Estados Unidos de América, 
+
+América del Norte,
+
+Tierra, 
+
+Vía Láctea,
+
+Supercúmulo de Virgo.\\
+
+20 de Julio, 2015 años después del nacimiento de Jesús Cristo (creo), y 60 años después del nacimiento de Mi Padre.
+\end{flushright}
+
+\normalsize
+
+
+\include{content}
+
+
+\afterpage{\blankpage}
+\afterpage{\blankpage}
+
+
+\end{document}
+  
