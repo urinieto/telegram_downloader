@@ -148,6 +148,11 @@ def get_first_date(messages):
     return messages[-1].date if len(messages) > 0 else None
 
 
+def get_last_date(messages):
+    """Gets the date of the last message."""
+    return messages[0].date if len(messages) > 0 else None
+
+
 def add_new_chapter(prev, curr):
     """Adds a new LaTeX chapter if needed."""
     return "\mychapter{%s del %d}\n\n" % \
@@ -162,7 +167,7 @@ def get_parsed_history(messages, senders, client, prev_batch_date):
     for i, (msg, sender) in enumerate(zip(reversed(messages),
                                           reversed(senders))):
         if i != 0:
-            parsed_msgs += add_new_chapter(prev_date, msg.date)
+            parsed_msgs += add_new_chapter(msg.date, prev_date)
             prev_date = msg.date
         name = get_name(sender)
         parsed_msgs += parse_message(msg, name, client)
@@ -202,7 +207,7 @@ if __name__ == "__main__":
     offset_id = -1
     limit = 100
     total_msgs = 0
-    n_batches = 10
+    n_batches = 100
     prev_batch_date = None
     for _ in tqdm(range(n_batches)):
         _, messages, senders = client.get_message_history(
