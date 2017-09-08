@@ -99,7 +99,7 @@ def get_message_string(msg, name, content):
         content = ": " + parse_emojis(content)
     return '[{}/{}/{} {}:{num:02d}] \\textbf{{{}}}{}'.format(
         msg.date.day, msg.date.month, msg.date.year, msg.date.hour, name,
-        content, num=msg.date.minute)
+        content.replace("_", "\_"), num=msg.date.minute)
 
 
 def parse_emojis(in_str):
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     offset_id = -1
     limit = 100
     total_msgs = 0
-    n_batches = 100
+    n_batches = 10
     prev_batch_date = None
     for _ in tqdm(range(n_batches)):
         _, messages, senders = client.get_message_history(
