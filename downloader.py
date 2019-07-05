@@ -206,11 +206,6 @@ def get_participants(client, chat):
     return participants
 
 
-@asyncio.coroutine
-async def downy(client, chat):
-    await client.download_profile_photo(chat, 'caca_bona.jpg')
-
-
 if __name__ == "__main__":
     # Open client and chat
     client = create_session(SESSION_ID, PHONE_NUM, API_ID, API_HASH)
