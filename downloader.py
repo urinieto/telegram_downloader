@@ -8,7 +8,7 @@ import time
 
 from tqdm import tqdm
 from telethon import TelegramClient
-from telethon.tl.types.message_media_photo import MessageMediaPhoto
+from telethon.tl.types import MessageMediaPhoto
 from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, CHAT_ID
 
 MONTHS_DICT = {
