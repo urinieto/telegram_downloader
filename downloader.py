@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import asyncio
 import datetime
 import emoji
 import os
@@ -37,8 +38,7 @@ def authorize_client(client, phone_num):
 def create_session(session_id, phone_num, api_id, api_hash):
     """Creates a Telegram session."""
     client = TelegramClient(session_id, api_id, api_hash)
-    client.connect()
-    authorize_client(client, phone_num)
+    client.start()
     return client
 
 
@@ -190,16 +190,29 @@ def get_parsed_history(messages, senders, client, prev_batch_date):
 
 def get_chat(client, chat_id):
     """Gets the chat with the given id and the open client."""
-    dialogs, entities = client.get_dialogs()
     chat = None
-    for i, e in enumerate(entities):
-        if e.id == CHAT_ID:
-            chat = e
+    for d in client.iter_dialogs():
+        if d.entity.id == CHAT_ID:
+            chat = d.entity
             break
     return chat
 
 
+def get_participants(client, chat):
+    """Gets a dictionary of participants in the given chat."""
+    participants = {}
+    for p in client.iter_participants(chat):
+        participants[p.id] = p
+    return participants
+
+
+@asyncio.coroutine
+async def downy(client, chat):
+    await client.download_profile_photo(chat, 'caca_bona.jpg')
+
+
 if __name__ == "__main__":
+    # Open client and chat
     client = create_session(SESSION_ID, PHONE_NUM, API_ID, API_HASH)
     chat = get_chat(client, CHAT_ID)
 
@@ -207,13 +220,19 @@ if __name__ == "__main__":
         print("Group {} not found!".format(CHAT_ID))
         sys.exit()
 
+    # Get all participants
+    ps = get_participants(client, chat)
+
     # Download Chat Pic
-    _ = client.download_profile_photo(chat, 'media/chat_picture')
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(client.download_profile_photo(chat, 'media/chat_pic.jpg'))
 
     date = datetime.datetime.today()
-    # date = date.replace(day=22)
+    date = date.replace(day=4)
     # date = date.replace(year=2010)
 
+    for message in client.iter_messages(chat, offset_date=date, reverse=True):
+        print(ps[message.from_id].first_name, ps[message.from_id].last_name, message.message)
     parsed_msgs = ""
     offset_id = -1
     limit = 100
@@ -221,6 +240,7 @@ if __name__ == "__main__":
     n_batches = 1000000
     prev_batch_date = None
     for _ in tqdm(range(n_batches)):
+        import ipdb; ipdb.set_trace()
         _, messages, senders = client.get_message_history(
             chat, offset_date=date, limit=limit, offset_id=offset_id)
         if len(messages) == 0:
