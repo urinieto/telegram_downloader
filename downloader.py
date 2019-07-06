@@ -10,6 +10,7 @@ import time
 from tqdm import tqdm
 from telethon import TelegramClient
 from telethon.tl.types import MessageMediaPhoto
+from telethon.tl.types import MessageMediaWebPage
 from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, CHAT_ID
 
 MONTHS_DICT = {
@@ -28,11 +29,9 @@ MONTHS_DICT = {
 }
 
 
-def authorize_client(client, phone_num):
-    """Authorizes the client if not authorized yet."""
-    if not client.is_user_authorized():
-        client.send_code_request(phone_num)
-        client.sign_in(phone_num, input('Enter code: '))
+class Message(object):
+    def __init__(self, message):
+        self.message = message
 
 
 def create_session(session_id, phone_num, api_id, api_hash):
@@ -198,6 +197,12 @@ def get_chat(client, chat_id):
     return chat
 
 
+def wait_fun(fun, **args):
+    """Run function asynchronously and waits for it to finish."""
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(fun(**args))
+
+
 def get_participants(client, chat):
     """Gets a dictionary of participants in the given chat."""
     participants = {}
@@ -219,15 +224,27 @@ if __name__ == "__main__":
     ps = get_participants(client, chat)
 
     # Download Chat Pic
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(client.download_profile_photo(chat, 'media/chat_pic.jpg'))
+    wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=4)
+    date = date.replace(day=2)
     # date = date.replace(year=2010)
 
     for message in client.iter_messages(chat, offset_date=date, reverse=True):
         print(ps[message.from_id].first_name, ps[message.from_id].last_name, message.message)
+        if message.media:
+            if isinstance(message.media, MessageMediaWebPage):
+                loop.run_until_complete(
+                    client.download_media(message, message.media.webpage.title + ".jpg"))
+            elif isinstance(message.media, MessageMediaPhoto):
+                import ipdb; ipdb.set_trace()
+                loop.run_until_complete(
+                    client.download_media(message, 
+                                          "{}.jpg".format(message.media.photo.id)))
+            else:
+                print(message)
+                sys.exit()
+    sys.exit()
     parsed_msgs = ""
     offset_id = -1
     limit = 100
