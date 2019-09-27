@@ -82,7 +82,8 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
         path = format_media_path(msg, name, img_dir, "jpg")
         wait_fun(client.download_media, message=msg,
                  file="{}.jpg".format(path))
-        out_msg = "\myfigure{0.6}{%s}" % (path)
+        out_msg = "\myfigure{0.6}{%s}{%s}" % (
+            path, get_message_string(msg, name, None)
     elif isinstance(msg.media, MessageMediaDocument):
         return out_msg
         if msg.media.document.mime_type == "video/mp4":
@@ -239,6 +240,7 @@ if __name__ == "__main__":
     date = date.replace(day=2)
     # date = date.replace(year=2010)
 
+    # Parse each message, from oldest to newest
     for message in client.iter_messages(chat, offset_date=date, reverse=True):
         name = get_name(message, ps)
         if message.media:
