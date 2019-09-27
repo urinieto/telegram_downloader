@@ -9,10 +9,16 @@ import time
 
 from tqdm import tqdm
 from telethon import TelegramClient
+from telethon.tl.types import MessageMediaDocument
 from telethon.tl.types import MessageMediaPhoto
 from telethon.tl.types import MessageMediaWebPage
 from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, CHAT_ID
 
+MEDIA_DIR = "media"
+AUDIO_DIR = "audio"
+VIDEO_DIR = "video"
+IMG_DIR = "image"
+WEB_DIR = "web"
 MONTHS_DICT = {
     1: "Gener",
     2: "Febrer",
@@ -41,30 +47,17 @@ def create_session(session_id, phone_num, api_id, api_hash):
     return client
 
 
-def get_name(sender):
-    """Gets the first and last names from the given sender, if exist."""
-    name = '???'
-    if sender:
-        name = getattr(sender, 'first_name', None)
-        if not name:
-            name = getattr(sender, 'title')
-            if not name:
-                name = '???'
-        else:
-            name += ' ' + getattr(sender, 'last_name', None)
-    return name
-
-
-def format_media_path(msg, name, new_dir, prefix, file_extension):
+def format_media_path(msg, name, new_dir, extension):
     """Formats the file containing the media."""
-    new_path = "{}_{}-{}-{} {}:{min:02d}:{sec:02d}_{}".format(
-        prefix, msg.date.year, msg.date.month, msg.date.day,
-        msg.date.hour, name, min=msg.date.minute, sec=msg.date.second)
-    return os.path.join(new_dir, new_path) + file_extension
+    new_path = "{}-{}-{} {}:{:02d}:{:02d}_{}.{}".format(
+        msg.date.year, msg.date.month, msg.date.day,
+        msg.date.hour, msg.date.minute, msg.date.second, name,
+        extension)
+    return os.path.join(new_dir, new_path)
 
 
-def download_media(msg, name, client, media_dir="media", audio_dir="audio",
-                   video_dir="video", img_dir="image"):
+def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
+                   video_dir=VIDEO_DIR, img_dir=IMG_DIR, web_dir=WEB_DIR):
     """Downloads media, if any."""
     os.makedirs(media_dir, exist_ok=True)
     audio_dir = os.path.join(media_dir, audio_dir)
@@ -73,32 +66,42 @@ def download_media(msg, name, client, media_dir="media", audio_dir="audio",
     os.makedirs(img_dir, exist_ok=True)
     video_dir = os.path.join(media_dir, video_dir)
     os.makedirs(video_dir, exist_ok=True)
+    web_dir = os.path.join(media_dir, web_dir)
+    os.makedirs(web_dir, exist_ok=True)
 
-    # Download media, and wait if timed out
-    tmp_path = None
-    k = 0
-    while tmp_path is None:
-        try:
-            tmp_path = client.download_media(msg.media, file=media_dir)
-        except TimeoutError:
-            k += 1
-            print("Download attempt", k)
-            time.sleep(10)
+    out_msg = ""
 
-    # Move files correctly
-    filename, file_extension = os.path.splitext(tmp_path)
-    new_path = None
-    if file_extension == ".oga":
-        new_path = format_media_path(msg, name, audio_dir, "audio", file_extension)
-    elif file_extension == ".jpg":
-        new_path = format_media_path(msg, name, img_dir, "img", file_extension)
-    elif file_extension == ".mp4":
-        new_path = format_media_path(msg, name, video_dir, "video", file_extension)
+    if isinstance(msg.media, MessageMediaWebPage):
+        import ipdb; ipdb.set_trace()
+        path = format_media_path(msg, name, web_dir, "html")
+        wait_fun(client.download_media, message=msg,
+                 file="{}".format(path))
+        out_msg = "Web: {}".format(msg)
+    elif isinstance(msg.media, MessageMediaPhoto):
+        import ipdb; ipdb.set_trace()
+        path = format_media_path(msg, name, img_dir, "jpg")
+        wait_fun(client.download_media, message=msg,
+                 file="{}.jpg".format(path))
+        out_msg = "\myfigure{0.6}{%s}" % (path)
+    elif isinstance(msg.media, MessageMediaDocument):
+        return out_msg
+        if msg.media.document.mime_type == "video/mp4":
+            path = format_media_path(msg, name, video_dir, "mp4")
+            wait_fun(client.download_media, message=msg,
+                     file="{}".format(path))
+            out_msg = "Video: {}".format(path)
+        else:
+            print("CACA DOCUMENT")
+            print(msg)
+            print(msg.media)
+            sys.exit()
 
-    new_path = tmp_path if new_path is None else new_path
-    shutil.move(tmp_path, new_path)
+    else:
+        print(msg)
+        print(msg.media)
+        sys.exit()
 
-    return new_path
+    return out_msg
 
 
 def get_message_string(msg, name, content):
@@ -203,6 +206,12 @@ def wait_fun(fun, **args):
     loop.run_until_complete(fun(**args))
 
 
+def get_name(msg, ps_dict):
+    """Returns first + last name from the given message."""
+    return "{} {}".format(ps_dict[msg.from_id].first_name,
+                          ps_dict[msg.from_id].last_name)
+
+
 def get_participants(client, chat):
     """Gets a dictionary of participants in the given chat."""
     participants = {}
@@ -231,19 +240,12 @@ if __name__ == "__main__":
     # date = date.replace(year=2010)
 
     for message in client.iter_messages(chat, offset_date=date, reverse=True):
-        print(ps[message.from_id].first_name, ps[message.from_id].last_name, message.message)
+        name = get_name(message, ps)
         if message.media:
-            if isinstance(message.media, MessageMediaWebPage):
-                loop.run_until_complete(
-                    client.download_media(message, message.media.webpage.title + ".jpg"))
-            elif isinstance(message.media, MessageMediaPhoto):
-                import ipdb; ipdb.set_trace()
-                loop.run_until_complete(
-                    client.download_media(message, 
-                                          "{}.jpg".format(message.media.photo.id)))
-            else:
-                print(message)
-                sys.exit()
+            content = download_media(message, name, client)
+            print(get_message_string(message, name, content))
+        else:
+            print(get_message_string(message, name, message.message))
     sys.exit()
     parsed_msgs = ""
     offset_id = -1
