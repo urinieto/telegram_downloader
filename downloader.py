@@ -83,7 +83,7 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
         wait_fun(client.download_media, message=msg,
                  file="{}.jpg".format(path))
         out_msg = "\myfigure{0.6}{%s}{%s}" % (
-            path, get_message_string(msg, name, None))
+            path, get_message_string(msg, name, msg.message))
     elif isinstance(msg.media, MessageMediaDocument):
         return out_msg
         if msg.media.document.mime_type == "video/mp4":
