@@ -78,15 +78,13 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
                  file="{}".format(path))
         out_msg = "Web: {}".format(msg)
     elif isinstance(msg.media, MessageMediaPhoto):
-        import ipdb; ipdb.set_trace()
         path = format_media_path(msg, name, img_dir, "jpg")
         wait_fun(client.download_media, message=msg,
                  file="{}.jpg".format(path))
-        out_msg = "\myfigure{0.6}{%s}{%s}" % (
+        out_msg = "\myfigure{0.3}{%s}{%s}" % (
             path, get_message_string(msg, name, msg.message))
     elif isinstance(msg.media, MessageMediaDocument):
         if msg.media.document.mime_type == "video/mp4":
-            import ipdb; ipdb.set_trace()
             path = format_media_path(msg, name, video_dir, "mp4")
             path_thumb = format_media_path(msg, name, video_dir, "jpg")
             wait_fun(client.download_media, message=msg,
@@ -94,10 +92,11 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             wait_fun(client.download_media, message=msg,
                      thumb=-1, file=path_thumb)
             content = "(video a {})".format(path)
-            out_msg = "\myfigure{0.6}{%s}{%s}" % (
+            out_msg = "\myfigure{0.3}{%s}{%s}" % (
                 path_thumb, get_message_string(msg, name,
                                                content + msg.message))
         else:
+            import ipdb; ipdb.set_trace()
             print("CACA DOCUMENT")
             print(msg)
             print(msg.media)
@@ -132,53 +131,6 @@ def parse_emojis(in_str):
     return out_str
 
 
-def parse_message(msg, name, client):
-    """Parses a single message from the given sender's name."""
-    if getattr(msg, 'media', None):
-        media_path = None
-        caption = getattr(msg.media, 'caption', '')
-        try:
-            media_path = download_media(msg, name, client)
-        except TypeError:
-            print("Couldn't download {}".format(msg))
-        if isinstance(msg.media, MessageMediaPhoto) and media_path is not None:
-            content = "\myfigure{0.6}{%s}" % ("image/" + os.path.basename(media_path))
-            return content + "{" + get_message_string(msg, name, caption) + "}\n\n"
-        else:
-            content = '<{}> {}'.format(msg.media.__class__.__name__, media_path)
-    elif hasattr(msg, 'message'):
-        content = msg.message
-    elif hasattr(msg, 'action'):
-        content = str(msg.action)
-    else:
-        # Unknown message, simply print its class name
-        content = msg.__class__.__name__
-
-    return get_message_string(msg, name, content) + "\n\n"
-
-
-def get_first_msg_id(messages):
-    """Gets the id of the first message."""
-    return messages[-1].id if len(messages) > 0 else None
-
-
-def get_first_date(messages):
-    """Gets the date of the first message."""
-    return messages[-1].date if len(messages) > 0 else None
-
-
-def get_last_date(messages):
-    """Gets the date of the last message."""
-    return messages[0].date if len(messages) > 0 else None
-
-
-def add_new_chapter(prev, curr):
-    """Adds a new LaTeX chapter if needed."""
-    return "\mychapter{%s del %d}\n\n" % \
-        (MONTHS_DICT[prev.month], prev.year) \
-        if curr is None or prev.month != curr.month else ""
-
-
 def add_new_day(date):
     return "\\textbf{{{}/{}/{}}}\n\n".format(
         date.day, date.month, date.year)
@@ -187,23 +139,6 @@ def add_new_day(date):
 def add_new_month(date):
     return "\mychapter{%s del %d}\n\n" % \
         (MONTHS_DICT[date.month], date.year)
-
-
-def get_parsed_history(messages, senders, client, prev_batch_date):
-    """Gets the parsed history given a date."""
-    parsed_msgs = ""
-    prev_date = get_first_date(messages)
-    for i, (msg, sender) in enumerate(zip(reversed(messages),
-                                          reversed(senders))):
-        if i != 0:
-            parsed_msgs += add_new_chapter(msg.date, prev_date)
-            prev_date = msg.date
-        name = get_name(sender)
-        parsed_msgs += parse_message(msg, name, client)
-
-    if prev_batch_date is not None:
-        parsed_msgs += add_new_chapter(prev_batch_date, msg.date)
-    return parsed_msgs
 
 
 def get_chat(client, chat_id):
@@ -252,7 +187,7 @@ if __name__ == "__main__":
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=2)
+    date = date.replace(day=4)
     # date = date.replace(year=2010)
 
     prev_month = None
@@ -260,47 +195,26 @@ if __name__ == "__main__":
 
     # Parse each message, from oldest to newest
     for message in client.iter_messages(chat, offset_date=date, reverse=True):
+        # Empty string
+        out_str = ""
+
         # Start a chapter for every new month
         if prev_month is None or prev_month != date.month:
-            print(add_new_month(message.date))
+            out_str += add_new_month(message.date)
             prev_month = date.month
 
         # Start a subsection for every new day
         if prev_day is None or prev_day != date.day:
-            print(add_new_day(message.date))
+            out_str += add_new_day(message.date)
             prev_day = date.day
 
         name = get_name(message, ps)
         if message.media:
-            content = download_media(message, name, client)
-            print(content)
+            out_str += download_media(message, name, client)
         else:
-            print(get_message_string(message, name, message.message))
-    sys.exit()
-    parsed_msgs = ""
-    offset_id = -1
-    limit = 100
-    total_msgs = 0
-    n_batches = 1000000
-    prev_batch_date = None
-    for _ in tqdm(range(n_batches)):
-        import ipdb; ipdb.set_trace()
-        _, messages, senders = client.get_message_history(
-            chat, offset_date=date, limit=limit, offset_id=offset_id)
-        if len(messages) == 0:
-            break
-        offset_id = get_first_msg_id(messages)
-        curr_msgs = get_parsed_history(messages, senders, client,
-                                       prev_batch_date)
-        parsed_msgs = curr_msgs + parsed_msgs
-        total_msgs += len(messages)
-        prev_batch_date = get_first_date(messages)
-        print(prev_batch_date)
-        with open("latex/content.tex", "w") as f:
-            f.write(parsed_msgs)
+            out_str += get_message_string(message, name, message.message)
 
-    # Add first chapter
-    parsed_msgs = add_new_chapter(prev_batch_date, None) + parsed_msgs
-    print(parsed_msgs)
-    with open("latex/content.tex", "w") as f:
-        f.write(parsed_msgs)
+        # Write to latex
+        print(out_str)
+        with open("latex/content.tex", "a") as f:
+            f.write(out_str + '\n\n')
