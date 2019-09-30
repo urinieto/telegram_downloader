@@ -3,11 +3,8 @@ import asyncio
 import datetime
 import emoji
 import os
-import shutil
 import sys
-import time
 
-from tqdm import tqdm
 from telethon import TelegramClient
 from telethon.tl.types import MessageMediaDocument
 from telethon.tl.types import MessageMediaPhoto
@@ -66,17 +63,12 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
     os.makedirs(img_dir, exist_ok=True)
     video_dir = os.path.join(media_dir, video_dir)
     os.makedirs(video_dir, exist_ok=True)
-    web_dir = os.path.join(media_dir, web_dir)
-    os.makedirs(web_dir, exist_ok=True)
 
     out_msg = ""
 
     if isinstance(msg.media, MessageMediaWebPage):
-        import ipdb; ipdb.set_trace()
-        path = format_media_path(msg, name, web_dir, "html")
-        wait_fun(client.download_media, message=msg,
-                 file="{}".format(path))
-        out_msg = "Web: {}".format(msg)
+        content = "\\url{{{}}} ".format(msg.media.webpage.url)
+        out_msg = get_message_string(msg, name, content)
     elif isinstance(msg.media, MessageMediaPhoto):
         path = format_media_path(msg, name, img_dir, "jpg")
         wait_fun(client.download_media, message=msg,
@@ -95,6 +87,13 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             out_msg = "\myfigure{0.3}{%s}{%s}" % (
                 path_thumb, get_message_string(msg, name,
                                                content + msg.message))
+        elif msg.media.document.mime_type == "audio/ogg":
+            path = format_media_path(msg, name, audio_dir, "ogg")
+            wait_fun(client.download_media, message=msg,
+                     file="{}".format(path))
+            content = "(\`audio a {})".format(path)
+            out_msg = get_message_string(msg, name,
+                                         content + msg.message)
         else:
             import ipdb; ipdb.set_trace()
             print("CACA DOCUMENT")
