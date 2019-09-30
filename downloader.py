@@ -85,18 +85,23 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
         out_msg = "\myfigure{0.6}{%s}{%s}" % (
             path, get_message_string(msg, name, msg.message))
     elif isinstance(msg.media, MessageMediaDocument):
-        return out_msg
         if msg.media.document.mime_type == "video/mp4":
+            import ipdb; ipdb.set_trace()
             path = format_media_path(msg, name, video_dir, "mp4")
+            path_thumb = format_media_path(msg, name, video_dir, "jpg")
             wait_fun(client.download_media, message=msg,
                      file="{}".format(path))
-            out_msg = "Video: {}".format(path)
+            wait_fun(client.download_media, message=msg,
+                     thumb=-1, file=path_thumb)
+            content = "(video a {})".format(path)
+            out_msg = "\myfigure{0.6}{%s}{%s}" % (
+                path_thumb, get_message_string(msg, name,
+                                               content + msg.message))
         else:
             print("CACA DOCUMENT")
             print(msg)
             print(msg.media)
             sys.exit()
-
     else:
         print(msg)
         print(msg.media)
@@ -111,9 +116,9 @@ def get_message_string(msg, name, content):
         content = ""
     else:
         content = ": " + parse_emojis(content)
-    return '[{}/{}/{} {}:{num:02d}] \\textbf{{{}}}{}'.format(
-        msg.date.day, msg.date.month, msg.date.year, msg.date.hour, name,
-        content.replace("_", "\_"), num=msg.date.minute)
+    return '[{}:{:02d}h] \\textbf{{{}}}{}'.format(
+        msg.date.hour, msg.date.minute, name,
+        content.replace("_", "\_"))
 
 
 def parse_emojis(in_str):
@@ -174,6 +179,16 @@ def add_new_chapter(prev, curr):
         if curr is None or prev.month != curr.month else ""
 
 
+def add_new_day(date):
+    return "\\textbf{{{}/{}/{}}}\n\n".format(
+        date.day, date.month, date.year)
+
+
+def add_new_month(date):
+    return "\mychapter{%s del %d}\n\n" % \
+        (MONTHS_DICT[date.month], date.year)
+
+
 def get_parsed_history(messages, senders, client, prev_batch_date):
     """Gets the parsed history given a date."""
     parsed_msgs = ""
@@ -208,9 +223,9 @@ def wait_fun(fun, **args):
 
 
 def get_name(msg, ps_dict):
-    """Returns first + last name from the given message."""
+    """Returns name from the given message."""
     return "{} {}".format(ps_dict[msg.from_id].first_name,
-                          ps_dict[msg.from_id].last_name)
+                          ps_dict[msg.from_id].last_name[0])
 
 
 def get_participants(client, chat):
@@ -240,12 +255,25 @@ if __name__ == "__main__":
     date = date.replace(day=2)
     # date = date.replace(year=2010)
 
+    prev_month = None
+    prev_day = None
+
     # Parse each message, from oldest to newest
     for message in client.iter_messages(chat, offset_date=date, reverse=True):
+        # Start a chapter for every new month
+        if prev_month is None or prev_month != date.month:
+            print(add_new_month(message.date))
+            prev_month = date.month
+
+        # Start a subsection for every new day
+        if prev_day is None or prev_day != date.day:
+            print(add_new_day(message.date))
+            prev_day = date.day
+
         name = get_name(message, ps)
         if message.media:
             content = download_media(message, name, client)
-            print(get_message_string(message, name, content))
+            print(content)
         else:
             print(get_message_string(message, name, message.message))
     sys.exit()
