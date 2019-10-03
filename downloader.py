@@ -9,6 +9,9 @@ from telethon import TelegramClient
 from telethon.tl.types import MessageMediaDocument
 from telethon.tl.types import MessageMediaPhoto
 from telethon.tl.types import MessageMediaWebPage
+from telethon.tl.types import MessageMediaGeo
+from telethon.tl.types import WebPageEmpty
+from telethon.tl.types import MessageMediaUnsupported
 from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, CHAT_ID
 
 MEDIA_DIR = "media"
@@ -67,7 +70,14 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
     out_msg = ""
 
     if isinstance(msg.media, MessageMediaWebPage):
-        content = "\\url{{{}}} ".format(msg.media.webpage.url)
+        content = msg.message
+        if not isinstance(msg.media.webpage, WebPageEmpty):
+            content = "\\url{{{}}} ".format(msg.media.webpage.url)
+        out_msg = get_message_string(msg, name, content)
+    elif isinstance(msg.media, MessageMediaGeo):
+        content = "Geolocation({}, {})".format(
+            msg.media.geo.long,
+            msg.media.geo.lat)
         out_msg = get_message_string(msg, name, content)
     elif isinstance(msg.media, MessageMediaPhoto):
         path = format_media_path(msg, name, img_dir, "jpg")
@@ -76,17 +86,23 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
         out_msg = "\myfigure{0.3}{%s}{%s}" % (
             path, get_message_string(msg, name, msg.message))
     elif isinstance(msg.media, MessageMediaDocument):
-        if msg.media.document.mime_type == "video/mp4":
-            path = format_media_path(msg, name, video_dir, "mp4")
-            path_thumb = format_media_path(msg, name, video_dir, "jpg")
+        if msg.media.document.mime_type == "video/mp4" or \
+                msg.media.document.mime_type == "video/3gpp":
+            ext = msg.media.document.mime_type.split("/")[1]
+            path = format_media_path(msg, name, video_dir, ext)
             wait_fun(client.download_media, message=msg,
                      file="{}".format(path))
-            wait_fun(client.download_media, message=msg,
-                     thumb=-1, file=path_thumb)
             content = "(video a {})".format(path)
-            out_msg = "\myfigure{0.3}{%s}{%s}" % (
-                path_thumb, get_message_string(msg, name,
-                                               content + msg.message))
+            try:
+                # Try to download a thumbnail of the video
+                path_thumb = format_media_path(msg, name, video_dir, "jpg")
+                wait_fun(client.download_media, message=msg,
+                        thumb=-1, file=path_thumb)
+                out_msg = "\myfigure{0.3}{%s}{%s}" % (
+                    path_thumb, get_message_string(msg, name,
+                                                content + msg.message))
+            except TypeError:
+                out_msg = get_message_string(msg, name, msg.message)
         elif msg.media.document.mime_type == "audio/ogg":
             path = format_media_path(msg, name, audio_dir, "ogg")
             wait_fun(client.download_media, message=msg,
@@ -100,7 +116,10 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             print(msg)
             print(msg.media)
             sys.exit()
+    elif isinstance(msg.media, MessageMediaUnsupported):
+        out_msg = get_message_string(msg, name, "(Message not parsed) " + msg.message)
     else:
+        import ipdb; ipdb.set_trace()
         print(msg)
         print(msg.media)
         sys.exit()
@@ -158,8 +177,16 @@ def wait_fun(fun, **args):
 
 def get_name(msg, ps_dict):
     """Returns name from the given message."""
-    return "{} {}".format(ps_dict[msg.from_id].first_name,
-                          ps_dict[msg.from_id].last_name[0])
+    # Remove middle name if any
+    try:
+        first_name = ps_dict[msg.from_id].first_name.split(" ")[0]
+    except KeyError:
+        import ipdb; ipdb.set_trace()
+        pass
+
+    # Get only initial of last name
+    last_initial = ps_dict[msg.from_id].last_name[0]
+    return "{} {}".format(first_name, last_initial)
 
 
 def get_participants(client, chat):
@@ -167,10 +194,16 @@ def get_participants(client, chat):
     participants = {}
     for p in client.iter_participants(chat):
         participants[p.id] = p
+    print(participants)
+    # from telethon.tl.functions.users import GetFullUserRequest
+    # caca = wait_fun(client, GetFullUserRequest(2390325))
+    # import ipdb; ipdb.set_trace()
+    # caca = await client(GetFullUserRequest(2390325))
     return participants
 
 
-if __name__ == "__main__":
+def process():
+    """Main process."""
     # Open client and chat
     client = create_session(SESSION_ID, PHONE_NUM, API_ID, API_HASH)
     chat = get_chat(client, CHAT_ID)
@@ -186,8 +219,9 @@ if __name__ == "__main__":
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=4)
-    # date = date.replace(year=2010)
+    date = date.replace(day=21)
+    date = date.replace(month=9)
+    date = date.replace(year=2010)
 
     prev_month = None
     prev_day = None
@@ -217,3 +251,8 @@ if __name__ == "__main__":
         print(out_str)
         with open("latex/content.tex", "a") as f:
             f.write(out_str + '\n\n')
+    print("Done")
+
+
+if __name__ == "__main__":
+    process()
