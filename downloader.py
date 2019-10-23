@@ -12,6 +12,7 @@ from telethon.tl.types import MessageMediaWebPage
 from telethon.tl.types import MessageMediaGeo
 from telethon.tl.types import MessageMediaUnsupported
 from telethon.tl.types import MessageMediaContact
+from telethon.tl.types import MessageMediaVenue
 from telethon.tl.types import WebPageEmpty
 from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, CHAT_ID
 
@@ -144,6 +145,9 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             msg.media.first_name, msg.media.phone_number))
     elif isinstance(msg.media, MessageMediaUnsupported):
         out_msg = get_message_string(msg, name, "(Message not parsed) " + msg.message)
+    elif isinstance(msg.media, MessageMediaVenue):
+        out_msg = get_message_string(msg, name, "(Lat: {} Long: {})".format(
+            msg.media.geo.lat, msg.media.geo.long))
     else:
         import ipdb; ipdb.set_trace()
         print(msg)
@@ -243,8 +247,8 @@ def process():
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=16)
-    date = date.replace(month=1)
+    date = date.replace(day=3)
+    date = date.replace(month=7)
     date = date.replace(year=2015)
 
     prev_month = None
