@@ -122,6 +122,9 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             latex_size = 0.5 if horizontal else 0.35
             out_msg = "\myfigure{%f}{%s}{%s}" % (
                 latex_size, path, get_message_string(msg, name, msg.message))
+        elif msg.media.document.mime_type == "application/pdf":
+            # Do not download PDFs
+            pass
         else:
             import ipdb; ipdb.set_trace()
             print("CACA DOCUMENT")
@@ -232,8 +235,8 @@ def process():
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=26)
-    date = date.replace(month=8)
+    date = date.replace(day=29)
+    date = date.replace(month=9)
     date = date.replace(year=2014)
 
     prev_month = None
