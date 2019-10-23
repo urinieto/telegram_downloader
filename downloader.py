@@ -10,8 +10,9 @@ from telethon.tl.types import MessageMediaDocument
 from telethon.tl.types import MessageMediaPhoto
 from telethon.tl.types import MessageMediaWebPage
 from telethon.tl.types import MessageMediaGeo
-from telethon.tl.types import WebPageEmpty
 from telethon.tl.types import MessageMediaUnsupported
+from telethon.tl.types import MessageMediaContact
+from telethon.tl.types import WebPageEmpty
 from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, CHAT_ID
 
 MEDIA_DIR = "media"
@@ -83,8 +84,10 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
         path = format_media_path(msg, name, img_dir, "jpg")
         wait_fun(client.download_media, message=msg,
                  file="{}.jpg".format(path))
-        out_msg = "\myfigure{0.3}{%s}{%s}" % (
-            path, get_message_string(msg, name, msg.message))
+        horizontal = msg.media.photo.sizes[0].w > msg.media.photo.sizes[0].h
+        latex_size = 0.5 if horizontal else 0.35
+        out_msg = "\myfigure{%f}{%s}{%s}" % (
+            latex_size, path, get_message_string(msg, name, msg.message))
     elif isinstance(msg.media, MessageMediaDocument):
         if msg.media.document.mime_type == "video/mp4" or \
                 msg.media.document.mime_type == "video/3gpp":
@@ -116,6 +119,9 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             print(msg)
             print(msg.media)
             sys.exit()
+    elif isinstance(msg.media, MessageMediaContact):
+        out_msg = get_message_string(msg, name, "(Contacte: {} {})".format(
+            msg.media.first_name, msg.media.phone_number))
     elif isinstance(msg.media, MessageMediaUnsupported):
         out_msg = get_message_string(msg, name, "(Message not parsed) " + msg.message)
     else:
@@ -194,11 +200,9 @@ def get_participants(client, chat):
     participants = {}
     for p in client.iter_participants(chat):
         participants[p.id] = p
-    print(participants)
-    # from telethon.tl.functions.users import GetFullUserRequest
-    # caca = wait_fun(client, GetFullUserRequest(2390325))
-    # import ipdb; ipdb.set_trace()
-    # caca = await client(GetFullUserRequest(2390325))
+        if p.first_name == "Bernat":
+            # Bernat switched phone numbers, so let's hack the old one in
+            participants[2390325] = p
     return participants
 
 
