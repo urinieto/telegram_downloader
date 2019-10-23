@@ -106,9 +106,11 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
                                                 content + msg.message))
             except TypeError:
                 out_msg = get_message_string(msg, name, msg.message)
-        elif mimetype == "audio/ogg" or mimetype == "audio/mpeg" or mimetype == "audio/amr":
+        elif mimetype == "audio/ogg" or mimetype == "audio/mpeg" or \
+                mimetype == "audio/amr" or mimetype == "audio/aac-adts":
             ext = mimetype.split("/")[1]
             ext = "mp3" if ext == "mpeg" else ext
+            ext = "aac" if ext == "aac-adts" else ext
             path = format_media_path(msg, name, audio_dir, ext)
             wait_fun(client.download_media, message=msg,
                      file="{}".format(path))
@@ -238,8 +240,8 @@ def process():
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=27)
-    date = date.replace(month=11)
+    date = date.replace(day=26)
+    date = date.replace(month=12)
     date = date.replace(year=2014)
 
     prev_month = None
