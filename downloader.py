@@ -127,6 +127,9 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             latex_size = 0.5 if horizontal else 0.35
             out_msg = "\myfigure{%f}{%s}{%s}" % (
                 latex_size, path, get_message_string(msg, name, msg.message))
+        elif mimetype == 'image/webp':
+            alt_sticker = msg.media.document.attributes[1].alt
+            out_msg = get_message_string(msg, name, alt_sticker)
         elif mimetype == "application/pdf":
             # Do not download PDFs
             pass
@@ -240,9 +243,9 @@ def process():
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=26)
-    date = date.replace(month=12)
-    date = date.replace(year=2014)
+    date = date.replace(day=16)
+    date = date.replace(month=1)
+    date = date.replace(year=2015)
 
     prev_month = None
     prev_day = None
