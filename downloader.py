@@ -13,6 +13,7 @@ from telethon.tl.types import MessageMediaGeo
 from telethon.tl.types import MessageMediaUnsupported
 from telethon.tl.types import MessageMediaContact
 from telethon.tl.types import MessageMediaVenue
+from telethon.tl.types import MessageMediaGame
 from telethon.tl.types import WebPageEmpty
 from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, CHAT_ID
 
@@ -148,6 +149,8 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
     elif isinstance(msg.media, MessageMediaVenue):
         out_msg = get_message_string(msg, name, "(Lat: {} Long: {})".format(
             msg.media.geo.lat, msg.media.geo.long))
+    elif isinstance(msg.media, MessageMediaGame):
+        out_msg = get_message_string(msg, name, "(Joc: {})".format(msg.media.game.title))
     else:
         import ipdb; ipdb.set_trace()
         print(msg)
@@ -248,8 +251,8 @@ def process():
 
     date = datetime.datetime.today()
     date = date.replace(day=3)
-    date = date.replace(month=7)
-    date = date.replace(year=2015)
+    date = date.replace(month=10)
+    date = date.replace(year=2016)
 
     prev_month = None
     prev_day = None
