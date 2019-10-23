@@ -113,6 +113,15 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             content = "(\`audio a {})".format(path)
             out_msg = get_message_string(msg, name,
                                          content + msg.message)
+        elif msg.media.document.mime_type == "image/jpeg":
+            # Not sure why some images are stored as such instead of MessageMediaPhoto
+            path = format_media_path(msg, name, img_dir, "jpg")
+            wait_fun(client.download_media, message=msg,
+                    file="{}.jpg".format(path))
+            horizontal = msg.media.document.thumbs[0].w > msg.media.document.thumbs[0].h
+            latex_size = 0.5 if horizontal else 0.35
+            out_msg = "\myfigure{%f}{%s}{%s}" % (
+                latex_size, path, get_message_string(msg, name, msg.message))
         else:
             import ipdb; ipdb.set_trace()
             print("CACA DOCUMENT")
@@ -223,9 +232,9 @@ def process():
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=21)
-    date = date.replace(month=9)
-    date = date.replace(year=2010)
+    date = date.replace(day=26)
+    date = date.replace(month=8)
+    date = date.replace(year=2014)
 
     prev_month = None
     prev_day = None
