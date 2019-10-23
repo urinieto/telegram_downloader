@@ -115,9 +115,10 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             content = "(\`audio a {})".format(path)
             out_msg = get_message_string(msg, name,
                                          content + msg.message)
-        elif mimetype == "image/jpeg":
+        elif mimetype == "image/jpeg" or mimetype == "image/gif":
             # Not sure why some images are stored as such instead of MessageMediaPhoto
-            path = format_media_path(msg, name, img_dir, "jpg")
+            ext = mimetype.split("/")[1]
+            path = format_media_path(msg, name, img_dir, ext)
             wait_fun(client.download_media, message=msg,
                     file="{}.jpg".format(path))
             horizontal = msg.media.document.thumbs[0].w > msg.media.document.thumbs[0].h
@@ -237,7 +238,7 @@ def process():
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=6)
+    date = date.replace(day=31)
     date = date.replace(month=10)
     date = date.replace(year=2014)
 
