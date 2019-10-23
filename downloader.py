@@ -89,9 +89,9 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
         out_msg = "\myfigure{%f}{%s}{%s}" % (
             latex_size, path, get_message_string(msg, name, msg.message))
     elif isinstance(msg.media, MessageMediaDocument):
-        if msg.media.document.mime_type == "video/mp4" or \
-                msg.media.document.mime_type == "video/3gpp":
-            ext = msg.media.document.mime_type.split("/")[1]
+        mimetype = msg.media.document.mime_type
+        if mimetype == "video/mp4" or mimetype == "video/3gpp":
+            ext = mimetype.split("/")[1]
             path = format_media_path(msg, name, video_dir, ext)
             wait_fun(client.download_media, message=msg,
                      file="{}".format(path))
@@ -106,14 +106,16 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
                                                 content + msg.message))
             except TypeError:
                 out_msg = get_message_string(msg, name, msg.message)
-        elif msg.media.document.mime_type == "audio/ogg":
-            path = format_media_path(msg, name, audio_dir, "ogg")
+        elif mimetype == "audio/ogg" or mimetype == "audio/mpeg":
+            ext = mimetype.split("/")[1]
+            ext = "mp3" if ext == "mpeg" else ext
+            path = format_media_path(msg, name, audio_dir, ext)
             wait_fun(client.download_media, message=msg,
                      file="{}".format(path))
             content = "(\`audio a {})".format(path)
             out_msg = get_message_string(msg, name,
                                          content + msg.message)
-        elif msg.media.document.mime_type == "image/jpeg":
+        elif mimetype == "image/jpeg":
             # Not sure why some images are stored as such instead of MessageMediaPhoto
             path = format_media_path(msg, name, img_dir, "jpg")
             wait_fun(client.download_media, message=msg,
@@ -122,7 +124,7 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             latex_size = 0.5 if horizontal else 0.35
             out_msg = "\myfigure{%f}{%s}{%s}" % (
                 latex_size, path, get_message_string(msg, name, msg.message))
-        elif msg.media.document.mime_type == "application/pdf":
+        elif mimetype == "application/pdf":
             # Do not download PDFs
             pass
         else:
@@ -235,8 +237,8 @@ def process():
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=29)
-    date = date.replace(month=9)
+    date = date.replace(day=6)
+    date = date.replace(month=10)
     date = date.replace(year=2014)
 
     prev_month = None
