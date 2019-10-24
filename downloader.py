@@ -96,8 +96,10 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             latex_size, path, get_message_string(msg, name, msg.message))
     elif isinstance(msg.media, MessageMediaDocument):
         mimetype = msg.media.document.mime_type
-        if mimetype == "video/mp4" or mimetype == "video/3gpp":
+        if mimetype == "video/mp4" or mimetype == "video/3gpp" or \
+                mimetype == "video/quicktime":
             ext = mimetype.split("/")[1]
+            ext = "mov" if ext == "quicktime" else ext
             path = format_media_path(msg, name, video_dir, ext)
             wait_fun(client.download_media, message=msg,
                      file="{}".format(path))
@@ -255,7 +257,7 @@ def process():
 
     date = datetime.datetime.today()
     date = date.replace(day=30)
-    date = date.replace(month=5)
+    date = date.replace(month=6)
     date = date.replace(year=2017)
 
     prev_month = None
