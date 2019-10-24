@@ -13,6 +13,7 @@ from telethon.tl.types import MessageMediaGeo
 from telethon.tl.types import MessageMediaUnsupported
 from telethon.tl.types import MessageMediaContact
 from telethon.tl.types import MessageMediaVenue
+from telethon.tl.types import MessageMediaGeoLive
 from telethon.tl.types import MessageMediaGame
 from telethon.tl.types import WebPageEmpty
 from telethon.errors.rpcerrorlist import LocationInvalidError
@@ -125,7 +126,7 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             content = "(\`audio a {})".format(path)
             out_msg = get_message_string(msg, name,
                                          content + msg.message)
-        elif mimetype == "image/jpeg" or mimetype == "image/gif":
+        elif mimetype == "image/jpeg" or mimetype == "image/gif" or mimetype == "image/png":
             # Not sure why some images are stored as such instead of MessageMediaPhoto
             ext = mimetype.split("/")[1]
             path = format_media_path(msg, name, img_dir, ext)
@@ -141,6 +142,15 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
         elif mimetype == "application/pdf":
             # Do not download PDFs
             pass
+        elif mimetype == "application/vnd.openxmlformats-" \
+                "officedocument.wordprocessingml.document":
+            pass
+        elif mimetype == "'application/octet-stream":
+            # Do not download audio of unknown type
+            pass
+        elif mimetype == "text/plain":
+            # Do not download plain document of unknown type
+            pass
         else:
             import ipdb; ipdb.set_trace()
             print("CACA DOCUMENT")
@@ -152,7 +162,8 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             msg.media.first_name, msg.media.phone_number))
     elif isinstance(msg.media, MessageMediaUnsupported):
         out_msg = get_message_string(msg, name, "(Message not parsed) " + msg.message)
-    elif isinstance(msg.media, MessageMediaVenue):
+    elif isinstance(msg.media, MessageMediaVenue) or \
+            isinstance(msg.media, MessageMediaGeoLive):
         out_msg = get_message_string(msg, name, "(Lat: {} Long: {})".format(
             msg.media.geo.lat, msg.media.geo.long))
     elif isinstance(msg.media, MessageMediaGame):
@@ -256,8 +267,8 @@ def process():
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=30)
-    date = date.replace(month=6)
+    date = date.replace(day=5)
+    date = date.replace(month=11)
     date = date.replace(year=2017)
 
     prev_month = None
