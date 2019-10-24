@@ -15,6 +15,7 @@ from telethon.tl.types import MessageMediaContact
 from telethon.tl.types import MessageMediaVenue
 from telethon.tl.types import MessageMediaGame
 from telethon.tl.types import WebPageEmpty
+from telethon.errors.rpcerrorlist import LocationInvalidError
 from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, CHAT_ID
 
 MEDIA_DIR = "media"
@@ -84,8 +85,11 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
         out_msg = get_message_string(msg, name, content)
     elif isinstance(msg.media, MessageMediaPhoto):
         path = format_media_path(msg, name, img_dir, "jpg")
-        wait_fun(client.download_media, message=msg,
-                 file="{}.jpg".format(path))
+        try:
+            wait_fun(client.download_media, message=msg,
+                     file="{}.jpg".format(path))
+        except LocationInvalidError:
+            pass
         horizontal = msg.media.photo.sizes[0].w > msg.media.photo.sizes[0].h
         latex_size = 0.5 if horizontal else 0.35
         out_msg = "\myfigure{%f}{%s}{%s}" % (
@@ -250,9 +254,9 @@ def process():
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=3)
-    date = date.replace(month=10)
-    date = date.replace(year=2016)
+    date = date.replace(day=30)
+    date = date.replace(month=5)
+    date = date.replace(year=2017)
 
     prev_month = None
     prev_day = None
