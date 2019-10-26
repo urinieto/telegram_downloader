@@ -4,6 +4,7 @@ import datetime
 import emoji
 import os
 import sys
+import time
 
 from telethon import TelegramClient
 from telethon.tl.types import MessageMediaDocument
@@ -15,8 +16,10 @@ from telethon.tl.types import MessageMediaContact
 from telethon.tl.types import MessageMediaVenue
 from telethon.tl.types import MessageMediaGeoLive
 from telethon.tl.types import MessageMediaGame
+from telethon.tl.types import MessageMediaPoll
 from telethon.tl.types import WebPageEmpty
 from telethon.errors.rpcerrorlist import LocationInvalidError
+from telethon.errors.rpcerrorlist import FloodWaitError
 from config import API_ID, API_HASH, PHONE_NUM, SESSION_ID, CHAT_ID
 
 MEDIA_DIR = "media"
@@ -91,8 +94,11 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
                      file="{}.jpg".format(path))
         except LocationInvalidError:
             pass
-        horizontal = msg.media.photo.sizes[0].w > msg.media.photo.sizes[0].h
-        latex_size = 0.5 if horizontal else 0.35
+        try:
+            horizontal = msg.media.photo.sizes[0].w > msg.media.photo.sizes[0].h
+            latex_size = 0.5 if horizontal else 0.35
+        except AttributeError:
+            latex_size = 0.35
         out_msg = "\myfigure{%f}{%s}{%s}" % (
             latex_size, path, get_message_string(msg, name, msg.message))
     elif isinstance(msg.media, MessageMediaDocument):
@@ -116,13 +122,23 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             except TypeError:
                 out_msg = get_message_string(msg, name, msg.message)
         elif mimetype == "audio/ogg" or mimetype == "audio/mpeg" or \
-                mimetype == "audio/amr" or mimetype == "audio/aac-adts":
+                mimetype == "audio/amr" or mimetype == "audio/aac-adts" or \
+                mimetype == "audio/opus" or mimetype == "audio/x-wav" or \
+                mimetype == "audio/mpeg3":
             ext = mimetype.split("/")[1]
             ext = "mp3" if ext == "mpeg" else ext
             ext = "aac" if ext == "aac-adts" else ext
+            ext = "wav" if ext == "x-wav" else ext
+            ext = "mp3" if ext == "mpeg3" else ext
             path = format_media_path(msg, name, audio_dir, ext)
-            wait_fun(client.download_media, message=msg,
-                     file="{}".format(path))
+            try:
+                wait_fun(client.download_media, message=msg,
+                         file="{}".format(path))
+            except FloodWaitError:
+                time.sleep(60)
+                wait_fun(client.download_media, message=msg,
+                         file="{}".format(path))
+                time.sleep(60)
             content = "(\`audio a {})".format(path)
             out_msg = get_message_string(msg, name,
                                          content + msg.message)
@@ -132,12 +148,18 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             path = format_media_path(msg, name, img_dir, ext)
             wait_fun(client.download_media, message=msg,
                     file="{}.jpg".format(path))
-            horizontal = msg.media.document.thumbs[0].w > msg.media.document.thumbs[0].h
-            latex_size = 0.5 if horizontal else 0.35
+            try:
+                horizontal = msg.media.document.thumbs[0].w > msg.media.document.thumbs[0].h
+                latex_size = 0.5 if horizontal else 0.35
+            except AttributeError:
+                latex_size = 0.35
             out_msg = "\myfigure{%f}{%s}{%s}" % (
                 latex_size, path, get_message_string(msg, name, msg.message))
         elif mimetype == 'image/webp':
             alt_sticker = msg.media.document.attributes[1].alt
+            out_msg = get_message_string(msg, name, alt_sticker)
+        elif mimetype == "application/x-tgsticker":
+            alt_sticker = msg.media.document.attributes[0].alt
             out_msg = get_message_string(msg, name, alt_sticker)
         elif mimetype == "application/pdf":
             # Do not download PDFs
@@ -145,7 +167,8 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
         elif mimetype == "application/vnd.openxmlformats-" \
                 "officedocument.wordprocessingml.document":
             pass
-        elif mimetype == "'application/octet-stream":
+        elif mimetype == "'application/octet-stream" or \
+                mimetype == "application/octet-stream":
             # Do not download audio of unknown type
             pass
         elif mimetype == "text/plain":
@@ -168,6 +191,8 @@ def download_media(msg, name, client, media_dir=MEDIA_DIR, audio_dir=AUDIO_DIR,
             msg.media.geo.lat, msg.media.geo.long))
     elif isinstance(msg.media, MessageMediaGame):
         out_msg = get_message_string(msg, name, "(Joc: {})".format(msg.media.game.title))
+    elif isinstance(msg.media, MessageMediaPoll):
+        out_msg = get_message_string(msg, name, "(Poll: {})".format(msg.media.poll.question))
     else:
         import ipdb; ipdb.set_trace()
         print(msg)
@@ -230,12 +255,13 @@ def get_name(msg, ps_dict):
     # Remove middle name if any
     try:
         first_name = ps_dict[msg.from_id].first_name.split(" ")[0]
+        # Get only initial of last name
+        last_initial = ps_dict[msg.from_id].last_name[0]
     except KeyError:
-        import ipdb; ipdb.set_trace()
+        first_name = "???"
+        last_initial = ""
         pass
 
-    # Get only initial of last name
-    last_initial = ps_dict[msg.from_id].last_name[0]
     return "{} {}".format(first_name, last_initial)
 
 
@@ -267,9 +293,9 @@ def process():
     wait_fun(client.download_profile_photo, entity=chat, file='media/chat_pic.jpg')
 
     date = datetime.datetime.today()
-    date = date.replace(day=5)
-    date = date.replace(month=11)
-    date = date.replace(year=2017)
+    date = date.replace(day=10)
+    date = date.replace(month=7)
+    date = date.replace(year=2019)
 
     prev_month = None
     prev_day = None
